@@ -1,7 +1,7 @@
 ---
 name: pr
 description: Create a well-documented pull request from the current working state. Handles uncommitted changes, branch creation, quality checks with autofix, and PR description generation. Pass `automerge` to auto-invoke /merge once /babysit reports the PR fully green.
-argument-hint: [--base <branch>] [automerge]
+argument-hint: "[--base <branch>] [automerge]"
 ---
 
 Create a pull request from the current working state. This skill handles everything from uncommitted changes on main to an already-committed feature branch.
