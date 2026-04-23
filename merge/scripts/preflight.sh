@@ -34,12 +34,20 @@ add_blocker() {
 # ---------------------------------------------------------------------------
 git_dir=$(cd "$(git rev-parse --git-dir)" && pwd)
 git_common_dir=$(cd "$(git rev-parse --git-common-dir)" && pwd)
+current_worktree_path=$(git rev-parse --show-toplevel)
 
 is_worktree=false
 main_worktree_path=""
 if [[ "$git_dir" != "$git_common_dir" ]]; then
   is_worktree=true
   main_worktree_path="$(cd "$git_common_dir/.." && pwd)"
+fi
+
+# Detect worktrunk — used by the caller to choose between ExitWorktree
+# (Claude Code isolation) and `wt remove` (manual / worktrunk-managed).
+has_worktrunk=false
+if command -v wt >/dev/null 2>&1; then
+  has_worktrunk=true
 fi
 
 # ---------------------------------------------------------------------------
@@ -138,7 +146,9 @@ jq -n \
   --argjson ready "$ready_to_merge" \
   --argjson blockers "$blockers" \
   --argjson is_worktree "$is_worktree" \
+  --argjson has_worktrunk "$has_worktrunk" \
   --arg main_worktree_path "$main_worktree_path" \
+  --arg current_worktree_path "$current_worktree_path" \
   --arg branch "$branch" \
   --arg default_branch "$default_branch" \
   --argjson pr_number "$pr_number" \
@@ -147,7 +157,9 @@ jq -n \
     ready_to_merge: $ready,
     blockers: $blockers,
     is_worktree: $is_worktree,
+    has_worktrunk: $has_worktrunk,
     main_worktree_path: $main_worktree_path,
+    current_worktree_path: $current_worktree_path,
     branch: $branch,
     default_branch: $default_branch,
     pr_number: $pr_number,
