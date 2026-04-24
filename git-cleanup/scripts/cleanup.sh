@@ -71,23 +71,46 @@ if ! git rev-parse --is-inside-work-tree &>/dev/null; then
 fi
 
 # ---------------------------------------------------------------------------
-# Resolve the mainline ref (prefer main, fall back to master)
+# Resolve the mainline branch name (prefer main, fall back to master)
 # ---------------------------------------------------------------------------
-MAIN_REF=""
+MAIN_LOCAL=""
 if git show-ref --verify --quiet refs/heads/main; then
-  MAIN_REF="main"
+  MAIN_LOCAL="main"
 elif git show-ref --verify --quiet refs/heads/master; then
-  MAIN_REF="master"
+  MAIN_LOCAL="master"
 else
   echo -e "${RED}Could not find a local 'main' or 'master' branch to compare against.${RESET}" >&2
   exit 1
 fi
 
 # ---------------------------------------------------------------------------
-# Fetch & prune remote tracking refs
+# Fetch every remote + prune stale tracking refs
+#
+# `--all` covers multi-remote repos (e.g. origin + upstream fork setup);
+# `--prune` drops tracking refs whose upstream branch has been deleted, which
+# is what makes `upstream:track == [gone]` accurate below.
 # ---------------------------------------------------------------------------
-echo -e "${BOLD}Fetching and pruning remote tracking refs...${RESET}"
-git fetch --prune
+echo -e "${BOLD}Fetching all remotes and pruning stale tracking refs...${RESET}"
+git fetch --all --prune
+
+# ---------------------------------------------------------------------------
+# Resolve the comparison ref
+#
+# Classification (merged / squash-merged) needs an up-to-date mainline tip.
+# Local `main` is often behind `origin/main` because users run /git-cleanup
+# without a prior `git pull`. Prefer the remote-tracking ref so the fetch
+# we just did actually changes the answer.
+# ---------------------------------------------------------------------------
+MAIN_REF=""
+if upstream=$(git rev-parse --abbrev-ref --symbolic-full-name "${MAIN_LOCAL}@{upstream}" 2>/dev/null); then
+  MAIN_REF="$upstream"
+else
+  # No upstream tracking ref — fall back to the local branch. Emit a note so
+  # the user understands why squash-merge detection might be stale.
+  MAIN_REF="$MAIN_LOCAL"
+  echo -e "${YELLOW}Note: '${MAIN_LOCAL}' has no upstream tracking ref — comparing against local '${MAIN_LOCAL}' (may miss recent squash-merges from other developers).${RESET}"
+fi
+echo -e "${BOLD}Comparing against:${RESET} ${MAIN_REF}"
 
 # ---------------------------------------------------------------------------
 # Classify a branch: echoes "merged", "squash-merged", or "unmerged".
