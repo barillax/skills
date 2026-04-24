@@ -125,30 +125,54 @@ Parse the JSON output. Print the PR URL.
 
 If `create-pr.sh` rejects the body with a `stale` or `empty` error, that means step 3c above was skipped or failed silently. Re-write the body file (deleting it first if needed), then re-invoke the script. Do not retry without a fresh write — the stale file is still on disk.
 
-## Phase 4 — Hand Off to Babysit
+## Phase 4 — Hand Off to a Monitor
 
-After PR creation, invoke `/loop 1m /babysit` to monitor CI and autofix mechanical failures.
+After PR creation, arm a `Monitor` tool call that polls the PR's state and emits a single event line whenever the PR crosses into a new actionable state (failing check landed, rebase needed, review asked for changes, unresolved thread, or fully green).
 
-**If `automerge` was set in Phase 0**, append it to the babysit invocation so the loop will auto-invoke `/merge` once the PR is green:
+This replaces the older `/loop 1m /babysit` pattern: instead of re-running babysit every minute regardless of state, the agent is notified only when the PR actually changes — and reacts by invoking the appropriate skill in response to each event.
 
-```
-/loop 1m /babysit automerge
-```
+### 4a. Arm the Monitor
 
-Use the `Skill` tool with `skill: "loop"` and `args: "1m /babysit automerge"`.
-
-Tell the user:
-
-> PR created at `<url>`. Monitoring CI via /babysit with automerge — I'll autofix mechanical failures, ask about anything that needs judgment, and squash-merge the PR once everything is green.
-
-**Otherwise** (no automerge), invoke without the flag:
+Invoke the `Monitor` tool with these arguments. Use `--automerge` in the command **only if** `automerge` was set in Phase 0:
 
 ```
-/loop 1m /babysit
+Monitor({
+  description: "PR state (branch <branch> → <base>)",
+  persistent: true,
+  timeout_ms: 3600000,
+  command: "${HOME}/.claude/skills/pr/scripts/monitor-pr-state.sh[ --automerge]"
+})
 ```
 
-Use the `Skill` tool with `skill: "loop"` and `args: "1m /babysit"`.
+Pick concrete values:
 
-Tell the user:
+- `description` — `"PR state (branch <current-branch> → <base>)"`. The description shows in every notification, so make it specific enough to identify this PR among any others.
+- `persistent: true` — CI runs can easily outlive the default 5-minute timeout, so make this a session-length watch. The script self-terminates on green / PR close.
+- `timeout_ms` — irrelevant while `persistent` is true, but include it explicitly so the field is set.
+- `command` — the monitor script path. Append ` --automerge` only when Phase 0 recorded `automerge=true`.
 
-> PR created at `<url>`. Monitoring CI via /babysit — I'll autofix mechanical failures and ask you about anything that needs judgment.
+### 4b. React to monitor events
+
+Each event is a JSON line. **You must react as soon as you see one** — don't wait for the user to ask:
+
+| Event                                                | Your response                                                                                                                                                                      |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `{"event":"needs_attention",...,"action":"babysit"}` | Invoke the `/babysit` skill via `Skill` (`skill: "babysit"`, no args). It does one pass — autofix what's mechanical, escalate judgment calls. The monitor keeps running afterward. |
+| `{"event":"green","action":"merge"}`                 | Invoke the `/merge` skill via `Skill` (`skill: "merge"`, no args). The monitor has already exited; `/merge` re-verifies green and squash-merges.                                   |
+| `{"event":"green","action":"ready"}`                 | Tell the user the PR is fully green and ready for a manual merge (share the URL). The monitor has already exited.                                                                  |
+| `{"event":"pr_closed",...}`                          | The PR is gone (closed, merged out-of-band, or the branch was deleted). Tell the user and stop. The monitor has already exited.                                                    |
+| `{"event":"error",...}`                              | Surface the `detail` to the user and stop — the watch is broken. The monitor has already exited.                                                                                   |
+
+### 4c. Tell the user what you armed
+
+Immediately after the `Monitor` tool returns successfully, tell the user what's watching. Pick the right one:
+
+**With `automerge`:**
+
+> PR created at `<url>`. Monitoring PR state — I'll react to failing checks / review feedback by running /babysit, and squash-merge via /merge once everything is green.
+
+**Without `automerge`:**
+
+> PR created at `<url>`. Monitoring PR state — I'll react to failing checks / review feedback by running /babysit, and tell you when the PR is ready to merge.
+
+Do not also invoke `/loop` or `/babysit` yourself here; the Monitor drives the loop now.
