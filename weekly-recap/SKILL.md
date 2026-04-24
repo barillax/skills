@@ -137,21 +137,23 @@ Apply the answers:
 
 ## Phase 4 — Format + output
 
-### 4a. Convert to Slack mrkdwn
+### 4a. Format for Slack mrkdwn
 
-Slack doesn't render standard Markdown. Transform:
+Slack's markup mode (https://slack.com/help/articles/360039953113) supports the following syntax:
 
-| Markdown → Slack mrkdwn |
-|---|
-| `**bold**` → `*bold*` |
-| `*italic*` → `_italic_` |
-| `[text](url)` → `<url\|text>` |
-| `# Heading`, `## Heading`, `### Heading` → `*Heading*` (single bold line, blank line before and after) |
-| `- item`, `* item` → `• item` |
-| inline `` `code` `` — unchanged |
-| `> quote` — unchanged |
+| Element | Syntax |
+|---|---|
+| Bold | `*your text*` |
+| Italic | `_your text_` |
+| Strikethrough | `~your text~` |
+| Inline code | `` `your text` `` |
+| Code block | ` ```your text``` ` |
+| Blockquote | `>your text` |
+| Link | `[your text](the link)` |
+| Heading (no native syntax) | use `*bold*` on its own line, blank line before and after |
+| Bullet list (no native syntax) | use `•` character |
 
-Do not emit any `**`, any `##`, or any `[text](url)` pattern — those render as literal characters in Slack. Do not add emojis unless the user explicitly requests them.
+Do not emit `**` or `##` — those render as literal characters in Slack. Do not add emojis unless the user explicitly requests them.
 
 ### 4b. Structure
 
@@ -167,7 +169,7 @@ _By the numbers: ..._        ← conditional, omit if under threshold
 • *<Focus area>* — <1-sentence elaboration>
 
 *Accomplishments*
-• <Bullet + why it matters> <url|PR title>
+• <Bullet + why it matters> [PR title](url)
 • ...
 
 *Next Week*
