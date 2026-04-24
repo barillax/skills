@@ -135,6 +135,22 @@ Apply the answers:
 - "Rephrase generically" — rewrite to drop the specific name/number but keep the outcome (e.g., "briefed a lead investor on Q2 plan" → "briefed leadership stakeholders on Q2 plan").
 - Free-form additions — integrate into the most relevant section, not a separate "extras" block.
 
+### 3b. Draft review loop
+
+After applying Phase 3 answers (or immediately after Phase 2 if Phase 3 was skipped), present the full formatted draft to the user exactly as it will be saved — no code fence, same Slack mrkdwn it will land in — then call `AskUserQuestion` with a single approval question:
+
+```
+question: "Does this recap look good to send?"
+options:
+  - "Looks good — save and finish"
+  - "I have edits" (free-form — user types changes)
+  - "Start over with different framing" (free-form)
+```
+
+If the user approves ("Looks good"), proceed to Phase 4.
+
+If the user provides edits or requests a reframe, apply the feedback, re-present the updated draft, and ask the approval question again. Repeat until the user approves. There is no iteration limit — keep refining until they say it's ready.
+
 ## Phase 4 — Format + output
 
 ### 4a. Format for Slack mrkdwn
@@ -151,7 +167,8 @@ Slack's markup mode (https://slack.com/help/articles/360039953113) supports the 
 | Blockquote | `>your text` |
 | Link | `[your text](the link)` |
 | Heading (no native syntax) | use `*bold*` on its own line, blank line before and after |
-| Bullet list (no native syntax) | use `•` character |
+| Bullet list | `- item` (standard Markdown dash) |
+| Numbered list | `1. item` (standard Markdown) |
 
 Do not emit `**` or `##` — those render as literal characters in Slack. Do not add emojis unless the user explicitly requests them.
 
@@ -166,18 +183,18 @@ Do not emit `**` or `##` — those render as literal characters in Slack. Do not
 _By the numbers: ..._        ← conditional, omit if under threshold
 
 *This Week's Focus*
-• *<Focus area>* — <1-sentence elaboration>
+- *<Focus area>* — <1-sentence elaboration>
 
 *Accomplishments*
-• <Bullet + why it matters> [PR title](url)
-• ...
+- <Bullet + why it matters> [PR title](url)
+- ...
 
 *Next Week*
-• <Priority>
-• ...
+- <Priority>
+- ...
 
 *Notes*                      ← conditional, omit if empty
-• <Risk or decision>
+- <Risk or decision>
 
 _Archived at ~/Documents/weekly-recaps/<YYYY-MM-DD>.md · raw signals at /tmp/wr-*.json_
 ```
