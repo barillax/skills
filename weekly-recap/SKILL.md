@@ -153,47 +153,47 @@ If the user provides edits or requests a reframe, apply the feedback, re-present
 
 ## Phase 4 — Format + output
 
-### 4a. Format for Slack mrkdwn
+### 4a. Format for Slack (standard Markdown)
 
-Slack's markup mode (https://slack.com/help/articles/360039953113) supports the following syntax:
+Slack's markup mode (https://slack.com/help/articles/360039953113) supports standard Markdown. Use the following syntax:
 
 | Element | Syntax |
 |---|---|
-| Bold | `*your text*` |
-| Italic | `_your text_` |
+| Bold | `**your text**` |
+| Italic | `*your text*` |
 | Strikethrough | `~your text~` |
 | Inline code | `` `your text` `` |
 | Code block | ` ```your text``` ` |
 | Blockquote | `>your text` |
 | Link | `[your text](the link)` |
-| Heading (no native syntax) | use `*bold*` on its own line, blank line before and after |
+| Heading (no native syntax) | use `**bold**` on its own line, blank line before and after |
 | Bullet list | `- item` (standard Markdown dash) |
 | Numbered list | `1. item` (standard Markdown) |
 
-Do not emit `**` or `##` — those render as literal characters in Slack. Do not add emojis unless the user explicitly requests them.
+Always use `**double-asterisk**` for headlines and any bolded section labels — never `_underscores_`, which render as italics. Underscores are reserved for the optional italicized stat line (see structure below). Do not add emojis unless the user explicitly requests them.
 
 ### 4b. Structure
 
 ```
-*Weekly Recap — <Mon DD>–<Mon DD, YYYY>*
+**Weekly Recap — <Mon DD>–<Mon DD, YYYY>**
 
-*Executive Summary*
+**Executive Summary**
 <2–3 sentences>
 
 _By the numbers: ..._        ← conditional, omit if under threshold
 
-*This Week's Focus*
-- *<Focus area>* — <1-sentence elaboration>
+**This Week's Focus**
+- **<Focus area>** — <1-sentence elaboration>
 
-*Accomplishments*
+**Accomplishments**
 - <Bullet + why it matters> [PR title](url)
 - ...
 
-*Next Week*
+**Next Week**
 - <Priority>
 - ...
 
-*Notes*                      ← conditional, omit if empty
+**Notes**                    ← conditional, omit if empty
 - <Risk or decision>
 
 _Archived at ~/Documents/weekly-recaps/<YYYY-MM-DD>.md · raw signals at /tmp/wr-*.json_
